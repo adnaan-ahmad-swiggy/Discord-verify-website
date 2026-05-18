@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
-import { validateOTP } from '@/lib/otp';
 import { supabase } from '@/lib/supabase';
 import { assignRole, removeRole } from '@/lib/discord';
 
@@ -20,44 +19,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch latest OTP record for this user
-    const { data: otpRecord, error: fetchError } = await supabase
-      .from('otps')
-      .select('*')
-      .eq('discord_id', session.discord_id)
-      .eq('verified', false)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    // Verify OTP via Supabase Auth
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: session.email!,
+      token: otp,
+      type: 'email',
+    });
 
-    if (fetchError || !otpRecord) {
-      return NextResponse.json(
-        { error: 'No OTP found. Please request a new one.' },
-        { status: 400 }
-      );
-    }
-
-    const result = validateOTP(otp, otpRecord.otp, new Date(otpRecord.expires_at));
-
-    if (result.expired) {
-      return NextResponse.json(
-        { error: 'OTP has expired. Please request a new one.', expired: true },
-        { status: 400 }
-      );
-    }
-
-    if (!result.valid) {
+    if (verifyError) {
+      console.error('OTP verify error:', verifyError);
+      if (verifyError.message.includes('expired')) {
+        return NextResponse.json(
+          { error: 'OTP has expired. Please request a new one.', expired: true },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
         { error: 'Invalid OTP. Please check and try again.' },
         { status: 400 }
       );
     }
-
-    // Mark OTP as verified
-    await supabase
-      .from('otps')
-      .update({ verified: true })
-      .eq('id', otpRecord.id);
 
     // Assign roles
     try {
@@ -74,14 +55,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Store verified user record
-    await supabase.from('users').upsert({
+    const { error: dbError } = await supabase.from('users').upsert({
       discord_id: session.discord_id,
       discord_username: session.discord_username,
-      email: session.email || otpRecord.email,
+      email: session.email,
       verified: true,
       verified_at: new Date().toISOString(),
       role_assigned: true,
     });
+
+    if (dbError) {
+      console.error('DB error storing user:', dbError);
+    }
 
     return NextResponse.json({ success: true });
   } catch {
