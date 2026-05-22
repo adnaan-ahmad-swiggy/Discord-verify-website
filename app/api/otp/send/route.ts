@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
     const { error: dbError } = await supabase.from('otps').insert({
       email,
-      otp: 'supabase-auth', // Placeholder since Supabase Auth manages the actual OTP
+      otp: 'SBAUTH', // Placeholder - actual OTP managed by Supabase Auth
       discord_id: session.discord_id,
       expires_at: expiresAt,
       verified: false,
