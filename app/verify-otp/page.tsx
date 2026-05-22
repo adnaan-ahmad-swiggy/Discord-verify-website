@@ -71,7 +71,7 @@ export default function VerifyOTPPage() {
             Enter Verification Code
           </h1>
           <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-            We sent a 6-digit code to your email. Check your inbox.
+            We sent an 8-digit code to your email. Check your inbox.
           </p>
         </div>
 
@@ -84,11 +84,11 @@ export default function VerifyOTPPage() {
               id="otp"
               type="text"
               inputMode="numeric"
-              pattern="[0-9]{6}"
-              maxLength={6}
+              pattern="[0-9]{8}"
+              maxLength={8}
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-              placeholder="000000"
+              placeholder="00000000"
               required
               className="mt-1 block w-full rounded-lg border border-zinc-300 px-4 py-3 text-center text-2xl tracking-widest text-zinc-900 placeholder-zinc-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
             />
@@ -108,7 +108,7 @@ export default function VerifyOTPPage() {
 
           <button
             type="submit"
-            disabled={loading || otp.length !== 6}
+            disabled={loading || otp.length !== 8}
             className="w-full rounded-lg bg-orange-500 px-4 py-3 font-medium text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Verifying...' : 'Verify'}
